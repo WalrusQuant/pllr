@@ -8,7 +8,7 @@ From GitHub:
 
 ```r
 # install.packages("devtools")
-devtools::install_github("adamwickwire/pllr")
+devtools::install_github("WalrusQuant/pllr")
 ```
 
 From a local clone:
