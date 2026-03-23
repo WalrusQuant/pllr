@@ -1,0 +1,31 @@
+url: https://walrusquant.github.io/pllr/
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference]
+    right: [github]
+
+reference:
+  - title: Standings & Events
+    desc: Team standings and game schedule
+    contents:
+      - pll_standings
+      - pll_events
+  - title: Player Data
+    desc: Player statistics and free agency
+    contents:
+      - pll_player_stats
+      - pll_free_agents
+  - title: Draft
+    desc: Draft order and predictions
+    contents:
+      - pll_draft_order
+      - pll_draft_predictions
+
+articles:
+  - title: Getting Started
+    contents:
+      - getting-started

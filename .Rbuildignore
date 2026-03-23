@@ -4,3 +4,6 @@
 ^README\.md$
 ^\.github$
 ^\.gitignore$
+^_pkgdown\.yml$
+^docs$
+^pkgdown$
