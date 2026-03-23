@@ -1,6 +1,7 @@
 Package: pllr
 Title: Premier Lacrosse League Stats API Client
 Version: 0.1.0
+Authors@R: person("Adam", "Wickwire", role = c("aut", "cre"), email = "adam@walrusquant.com")
 Description: R client for the Premier Lacrosse League (PLL) stats API.
     Provides functions to retrieve standings, player stats, events,
     draft information, and free agent data as tibbles.
