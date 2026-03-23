@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>pllr — PLL Stats API for R</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:       #0a1628;
+      --navy-mid:   #0f1f3d;
+      --navy-light: #172b52;
+      --blue:       #1e56a0;
+      --blue-light: #2d72d2;
+      --accent:     #4a9eff;
+      --accent-dim: #3a7fd4;
+      --text:       #e8edf5;
+      --text-muted: #8fa4c8;
+      --text-dim:   #5c7aaa;
+      --border:     #1e3560;
+      --code-bg:    #060e1e;
+      --code-border:#1a2e50;
+      --tag-bg:     #0f2044;
+      --tag-text:   #6eb0ff;
+      --green:      #4caf82;
+      --yellow:     #e8c56a;
+      --purple:     #b07ef8;
+      --pink:       #f07ab0;
+      --orange:     #f0936a;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                   Helvetica, Arial, sans-serif;
+      background: var(--navy);
+      color: var(--text);
+      line-height: 1.65;
+      font-size: 16px;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(10, 22, 40, 0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 2rem;
+    }
+    nav .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      height: 52px;
+    }
+    nav .nav-brand {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+      margin-right: auto;
+      text-decoration: none;
+    }
+    nav .nav-links {
+      display: flex;
+      gap: 0;
+      list-style: none;
+    }
+    nav .nav-links a {
+      display: block;
+      padding: 0 0.85rem;
+      height: 52px;
+      line-height: 52px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: color 0.15s;
+      white-space: nowrap;
+    }
+    nav .nav-links a:hover { color: var(--text); }
+
+    /* ── HERO ── */
+    .hero {
+      background: linear-gradient(160deg, #0f1f3d 0%, #0a1628 50%, #07101f 100%);
+      border-bottom: 1px solid var(--border);
+      padding: 5rem 2rem 4.5rem;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 50% -10%, rgba(30, 86, 160, 0.35) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 40% at 80% 80%, rgba(74, 158, 255, 0.08) 0%, transparent 60%);
+      pointer-events: none;
+    }
+    .hero-content { position: relative; }
+    .hero-badge {
+      display: inline-block;
+      background: var(--tag-bg);
+      border: 1px solid var(--blue);
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 0.3rem 0.85rem;
+      border-radius: 999px;
+      margin-bottom: 1.5rem;
+    }
+    .hero h1 {
+      font-size: clamp(3rem, 8vw, 5.5rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      color: var(--text);
+      margin-bottom: 1rem;
+    }
+    .hero h1 span { color: var(--accent); }
+    .hero .tagline {
+      font-size: clamp(1rem, 2.5vw, 1.25rem);
+      color: var(--text-muted);
+      max-width: 560px;
+      margin: 0 auto 2.5rem;
+      line-height: 1.5;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    .btn {
+      display: inline-block;
+      padding: 0.65rem 1.5rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.15s;
+      cursor: pointer;
+    }
+    .btn-primary {
+      background: var(--blue-light);
+      color: #fff;
+      border: 1px solid transparent;
+    }
+    .btn-primary:hover { background: var(--accent-dim); }
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+    }
+    .btn-secondary:hover { color: var(--text); border-color: var(--blue); }
+
+    /* ── LAYOUT ── */
+    .page { max-width: 1100px; margin: 0 auto; padding: 0 2rem; }
+
+    section {
+      padding: 4rem 0;
+      border-bottom: 1px solid var(--border);
+    }
+    section:last-of-type { border-bottom: none; }
+
+    h2 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .section-lead {
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+      font-size: 1rem;
+    }
+    h3 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 1.25rem;
+    }
+    p { color: var(--text-muted); margin-bottom: 1rem; }
+    p:last-child { margin-bottom: 0; }
+
+    /* ── CODE BLOCKS ── */
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      overflow-x: auto;
+      font-size: 0.875rem;
+      line-height: 1.7;
+      margin: 1rem 0;
+    }
+    pre code { font-family: "SF Mono", "Fira Code", "Cascadia Code",
+                             Consolas, "Courier New", monospace; }
+    code {
+      font-family: "SF Mono", "Fira Code", "Cascadia Code",
+                   Consolas, "Courier New", monospace;
+      font-size: 0.85em;
+      background: var(--tag-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 4px;
+      padding: 0.15em 0.4em;
+      color: var(--accent);
+    }
+    pre code {
+      background: none;
+      border: none;
+      padding: 0;
+      font-size: inherit;
+      color: inherit;
+    }
+
+    /* syntax tokens */
+    .kw  { color: var(--purple); }   /* keywords / functions */
+    .fn  { color: var(--blue-light); font-style: italic; } /* function calls */
+    .pkg { color: var(--accent); font-weight: 600; }   /* package:: */
+    .str { color: var(--green); }    /* strings */
+    .num { color: var(--orange); }   /* numbers */
+    .cmt { color: var(--text-dim); font-style: italic; } /* comments */
+    .op  { color: var(--text-muted); }  /* operators */
+    .arg { color: var(--yellow); }   /* named args */
+    .var { color: var(--text); }     /* variables */
+
+    /* ── INSTALL CARDS ── */
+    .install-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+    @media (max-width: 640px) { .install-grid { grid-template-columns: 1fr; } }
+    .install-card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+    }
+    .install-card h4 {
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+      margin-bottom: 0.75rem;
+    }
+    .install-card pre { margin: 0; }
+
+    /* ── QUICK START ── */
+    .qs-block { margin-bottom: 2rem; }
+    .qs-block:last-child { margin-bottom: 0; }
+    .qs-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-dim);
+      margin-bottom: 0.5rem;
+    }
+
+    /* ── FUNCTION REFERENCE ── */
+    .fn-card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+    .fn-card:last-child { margin-bottom: 0; }
+    .fn-header {
+      background: var(--navy-light);
+      border-bottom: 1px solid var(--border);
+      padding: 1.25rem 1.5rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .fn-sig {
+      font-family: "SF Mono", "Fira Code", "Cascadia Code",
+                   Consolas, "Courier New", monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--text);
+      flex: 1;
+    }
+    .fn-sig .fn-name { color: var(--accent); }
+    .fn-sig .fn-paren { color: var(--text-muted); }
+    .fn-sig .fn-param-name { color: var(--yellow); }
+    .fn-sig .fn-param-val { color: var(--green); }
+    .fn-sig .fn-comma { color: var(--text-dim); }
+    .fn-body { padding: 1.5rem; }
+    .fn-desc { color: var(--text-muted); margin-bottom: 1.25rem; font-size: 0.95rem; }
+
+    /* param table */
+    .param-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.875rem;
+      margin-bottom: 1.5rem;
+    }
+    .param-table thead tr {
+      background: var(--navy);
+      border-bottom: 1px solid var(--border);
+    }
+    .param-table th {
+      text-align: left;
+      padding: 0.55rem 0.85rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-dim);
+    }
+    .param-table td {
+      padding: 0.6rem 0.85rem;
+      border-bottom: 1px solid rgba(30, 53, 96, 0.5);
+      color: var(--text-muted);
+      vertical-align: top;
+    }
+    .param-table tbody tr:last-child td { border-bottom: none; }
+    .param-table td:first-child code { color: var(--yellow); }
+    .param-table .type-badge {
+      display: inline-block;
+      background: var(--tag-bg);
+      border: 1px solid var(--code-border);
+      color: var(--purple);
+      font-size: 0.75rem;
+      font-family: "SF Mono", "Fira Code", "Cascadia Code",
+                   Consolas, "Courier New", monospace;
+      padding: 0.1em 0.5em;
+      border-radius: 4px;
+    }
+
+    /* returns block */
+    .returns-block {
+      background: var(--navy);
+      border: 1px solid var(--code-border);
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+    }
+    .returns-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--text-dim);
+      margin-bottom: 0.5rem;
+    }
+    .returns-text { font-size: 0.9rem; color: var(--text-muted); line-height: 1.6; }
+    .returns-text code { color: var(--accent); }
+
+    /* ── NOTES ── */
+    .notes-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 640px) { .notes-grid { grid-template-columns: 1fr; } }
+    .note-card {
+      background: var(--navy-mid);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--blue-light);
+      border-radius: 8px;
+      padding: 1.1rem 1.25rem;
+    }
+    .note-card.full { grid-column: 1 / -1; border-left-color: var(--accent); }
+    .note-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text);
+      margin-bottom: 0.4rem;
+    }
+    .note-body { font-size: 0.9rem; color: var(--text-muted); }
+    .note-body code { color: var(--accent); }
+
+    /* ── SNAKE CASE HIGHLIGHT ── */
+    .convention-block {
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      margin-top: 1.5rem;
+    }
+    .convention-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.45rem 0;
+      font-family: "SF Mono", "Fira Code", "Cascadia Code",
+                   Consolas, "Courier New", monospace;
+      font-size: 0.875rem;
+      flex-wrap: wrap;
+    }
+    .conv-api  { color: var(--text-dim); min-width: 180px; }
+    .conv-arr  { color: var(--blue-light); }
+    .conv-pkg  { color: var(--green); font-weight: 600; }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--navy-mid);
+      border-top: 1px solid var(--border);
+      padding: 2.5rem 2rem;
+      text-align: center;
+    }
+    footer .footer-inner { max-width: 1100px; margin: 0 auto; }
+    footer p { font-size: 0.875rem; color: var(--text-dim); margin-bottom: 0.5rem; }
+    footer p:last-child { margin-bottom: 0; }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── SECTION DIVIDER ── */
+    .section-divider {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+    .section-num {
+      font-size: 0.75rem;
+      font-weight: 700;
+      font-family: "SF Mono", "Fira Code", Consolas, monospace;
+      color: var(--blue-light);
+      background: var(--tag-bg);
+      border: 1px solid var(--blue);
+      padding: 0.2em 0.6em;
+      border-radius: 4px;
+      letter-spacing: 0.04em;
+    }
+    .section-divider h2 { margin-bottom: 0; }
+
+    /* responsive nav */
+    @media (max-width: 700px) {
+      nav .nav-links a { padding: 0 0.5rem; font-size: 0.8rem; }
+    }
+    @media (max-width: 520px) {
+      nav .nav-links { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a class="nav-brand" href="#top">pllr</a>
+    <ul class="nav-links">
+      <a href="#installation">Installation</a>
+      <a href="#quickstart">Quick Start</a>
+      <a href="#reference">Reference</a>
+      <a href="#notes">Notes</a>
+      <a href="https://github.com/WalrusQuant/pllr" target="_blank" rel="noopener">GitHub</a>
+    </ul>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero" id="top">
+  <div class="hero-content">
+    <div class="hero-badge">R Package</div>
+    <h1><span>pllr</span></h1>
+    <p class="tagline">
+      Premier Lacrosse League stats API for R — returns tidy tibbles
+      with <code style="background:rgba(74,158,255,0.12);border-color:rgba(74,158,255,0.25);color:#4a9eff;">snake_case</code> column names.
+    </p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="#installation">Get Started</a>
+      <a class="btn btn-secondary" href="https://github.com/WalrusQuant/pllr" target="_blank" rel="noopener">View on GitHub</a>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- INSTALLATION -->
+  <section id="installation">
+    <div class="section-divider">
+      <span class="section-num">01</span>
+      <h2>Installation</h2>
+    </div>
+    <p class="section-lead">Install pllr directly from GitHub using <code>devtools</code> or <code>remotes</code>.</p>
+    <div class="install-grid">
+      <div class="install-card">
+        <h4>From GitHub</h4>
+        <pre><code><span class="cmt"># install.packages("devtools")</span>
+<span class="pkg">devtools</span><span class="op">::</span><span class="fn">install_github</span><span class="op">(</span><span class="str">"WalrusQuant/pllr"</span><span class="op">)</span></code></pre>
+      </div>
+      <div class="install-card">
+        <h4>From Local Clone</h4>
+        <pre><code><span class="pkg">devtools</span><span class="op">::</span><span class="fn">install</span><span class="op">(</span><span class="str">"path/to/pllr"</span><span class="op">)</span></code></pre>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUICK START -->
+  <section id="quickstart">
+    <div class="section-divider">
+      <span class="section-num">02</span>
+      <h2>Quick Start</h2>
+    </div>
+    <p class="section-lead">Load the package and start pulling data in a few lines.</p>
+
+    <div class="qs-block">
+      <div class="qs-label">Team Standings</div>
+      <pre><code><span class="kw">library</span><span class="op">(</span><span class="pkg">pllr</span><span class="op">)</span>
+
+<span class="cmt"># Champ Series standings for 2025</span>
+<span class="var">standings</span> <span class="op">&lt;-</span> <span class="fn">pll_standings</span><span class="op">(</span><span class="arg">year</span> <span class="op">=</span> <span class="num">2025</span><span class="op">,</span> <span class="arg">champ_series</span> <span class="op">=</span> <span class="kw">TRUE</span><span class="op">)</span>
+<span class="cmt"># # A tibble: 14 × 19</span>
+<span class="cmt"># # team_id  full_name  location  wins  losses  ties  scores  scores_against ...</span></code></pre>
+    </div>
+
+    <div class="qs-block">
+      <div class="qs-label">Player Season Stats</div>
+      <pre><code><span class="cmt"># Player stats for the Champ Series</span>
+<span class="var">stats</span> <span class="op">&lt;-</span> <span class="fn">pll_player_stats</span><span class="op">(</span><span class="arg">year</span> <span class="op">=</span> <span class="num">2025</span><span class="op">,</span> <span class="arg">season_segment</span> <span class="op">=</span> <span class="str">"champseries"</span><span class="op">)</span>
+<span class="cmt"># # A tibble: ~200 × 70</span>
+<span class="cmt"># # official_id  first_name  last_name  position  goals  assists  points ...</span></code></pre>
+    </div>
+
+    <div class="qs-block">
+      <div class="qs-label">Schedule &amp; Results</div>
+      <pre><code><span class="cmt"># Full schedule including Champ Series and WLL events</span>
+<span class="var">events</span> <span class="op">&lt;-</span> <span class="fn">pll_events</span><span class="op">(</span><span class="arg">year</span> <span class="op">=</span> <span class="num">2025</span><span class="op">,</span> <span class="arg">include_cs</span> <span class="op">=</span> <span class="kw">TRUE</span><span class="op">,</span> <span class="arg">include_wll</span> <span class="op">=</span> <span class="kw">TRUE</span><span class="op">)</span>
+<span class="cmt"># # A tibble: ~80 × 64</span>
+<span class="cmt"># # id  event_id  start_time  venue  broadcaster  home_full_name  away_score ...</span></code></pre>
+    </div>
+
+    <div class="qs-block">
+      <div class="qs-label">Draft &amp; Free Agents</div>
+      <pre><code><span class="cmt"># Official draft pick order</span>
+<span class="var">draft</span> <span class="op">&lt;-</span> <span class="fn">pll_draft_order</span><span class="op">(</span><span class="arg">year</span> <span class="op">=</span> <span class="num">2025</span><span class="op">,</span> <span class="arg">league</span> <span class="op">=</span> <span class="str">"PLL"</span><span class="op">)</span>
+
+<span class="cmt"># Analyst mock draft predictions</span>
+<span class="var">predictions</span> <span class="op">&lt;-</span> <span class="fn">pll_draft_predictions</span><span class="op">(</span><span class="arg">year</span> <span class="op">=</span> <span class="num">2026</span><span class="op">)</span>
+
+<span class="cmt"># Free agent pool</span>
+<span class="var">free_agents</span> <span class="op">&lt;-</span> <span class="fn">pll_free_agents</span><span class="op">(</span><span class="arg">year</span> <span class="op">=</span> <span class="num">2026</span><span class="op">)</span></code></pre>
+    </div>
+  </section>
+
+  <!-- FUNCTION REFERENCE -->
+  <section id="reference">
+    <div class="section-divider">
+      <span class="section-num">03</span>
+      <h2>Function Reference</h2>
+    </div>
+    <p class="section-lead">All functions return a <code>tibble</code>. Column names use <code>snake_case</code> regardless of the underlying API format.</p>
+
+    <!-- pll_standings -->
+    <div class="fn-card">
+      <div class="fn-header">
+        <div class="fn-sig">
+          <span class="fn-name">pll_standings</span><span class="fn-paren">(</span><span class="fn-param-name">year</span> <span class="fn-paren">=</span> <span class="fn-param-val">2025</span><span class="fn-comma">,</span> <span class="fn-param-name">champ_series</span> <span class="fn-paren">=</span> <span class="fn-param-val">TRUE</span><span class="fn-paren">)</span>
+        </div>
+      </div>
+      <div class="fn-body">
+        <p class="fn-desc">Returns team standings for the specified season.</p>
+        <table class="param-table">
+          <thead>
+            <tr>
+              <th>Parameter</th>
+              <th>Type</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>year</code></td>
+              <td><span class="type-badge">integer</span></td>
+              <td><code>2025</code></td>
+              <td>Season year</td>
+            </tr>
+            <tr>
+              <td><code>champ_series</code></td>
+              <td><span class="type-badge">logical</span></td>
+              <td><code>TRUE</code></td>
+              <td>If <code>TRUE</code>, returns Champ Series standings; <code>FALSE</code> returns regular season</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="returns-block">
+          <div class="returns-label">Returns</div>
+          <div class="returns-text">
+            A tibble with one row per team (14 rows, 19 columns). Key columns: <code>team_id</code>, <code>full_name</code>, <code>location</code>, <code>location_code</code>, <code>url_logo</code>, <code>seed</code>, <code>wins</code>, <code>losses</code>, <code>ties</code>, <code>scores</code>, <code>scores_against</code>, <code>score_diff</code>, <code>conference_wins</code>, <code>conference_losses</code>, <code>conference_ties</code>, <code>conference_scores</code>, <code>conference_scores_against</code>, <code>conference</code>, <code>conference_seed</code>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- pll_player_stats -->
+    <div class="fn-card">
+      <div class="fn-header">
+        <div class="fn-sig">
+          <span class="fn-name">pll_player_stats</span><span class="fn-paren">(</span><span class="fn-param-name">year</span> <span class="fn-paren">=</span> <span class="fn-param-val">2025</span><span class="fn-comma">,</span> <span class="fn-param-name">season_segment</span> <span class="fn-paren">=</span> <span class="fn-param-val">"champseries"</span><span class="fn-paren">)</span>
+        </div>
+      </div>
+      <div class="fn-body">
+        <p class="fn-desc">Returns player statistics for the specified season and segment.</p>
+        <table class="param-table">
+          <thead>
+            <tr>
+              <th>Parameter</th>
+              <th>Type</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>year</code></td>
+              <td><span class="type-badge">integer</span></td>
+              <td><code>2025</code></td>
+              <td>Season year</td>
+            </tr>
+            <tr>
+              <td><code>season_segment</code></td>
+              <td><span class="type-badge">character</span></td>
+              <td><code>"champseries"</code></td>
+              <td>Season segment — <code>"champseries"</code> or <code>"regular"</code></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="returns-block">
+          <div class="returns-label">Returns</div>
+          <div class="returns-text">
+            A tibble with one row per player (~200 rows, ~70 columns). Player identity: <code>official_id</code>, <code>first_name</code>, <code>last_name</code>, <code>slug</code>, <code>jersey_num</code>, <code>position</code>, <code>position_name</code>, <code>experience</code>. Team columns are prefixed with <code>team_</code> (e.g., <code>team_full_name</code>, <code>team_location_code</code>). Stat columns include <code>goals</code>, <code>assists</code>, <code>points</code>, <code>shots</code>, <code>shot_pct</code>, <code>saves</code>, <code>save_pct</code>, <code>faceoffs_won</code>, <code>faceoff_pct</code>, <code>ground_balls</code>, <code>turnovers</code>, <code>caused_turnovers</code>, <code>gaa</code>, <code>plus_minus</code>, and many more.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- pll_events -->
+    <div class="fn-card">
+      <div class="fn-header">
+        <div class="fn-sig">
+          <span class="fn-name">pll_events</span><span class="fn-paren">(</span><span class="fn-param-name">year</span> <span class="fn-paren">=</span> <span class="fn-param-val">2025</span><span class="fn-comma">,</span> <span class="fn-param-name">include_cs</span> <span class="fn-paren">=</span> <span class="fn-param-val">TRUE</span><span class="fn-comma">,</span> <span class="fn-param-name">include_wll</span> <span class="fn-paren">=</span> <span class="fn-param-val">TRUE</span><span class="fn-paren">)</span>
+        </div>
+      </div>
+      <div class="fn-body">
+        <p class="fn-desc">Returns the game schedule and results for the specified season.</p>
+        <table class="param-table">
+          <thead>
+            <tr>
+              <th>Parameter</th>
+              <th>Type</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>year</code></td>
+              <td><span class="type-badge">integer</span></td>
+              <td><code>2025</code></td>
+              <td>Season year</td>
+            </tr>
+            <tr>
+              <td><code>include_cs</code></td>
+              <td><span class="type-badge">logical</span></td>
+              <td><code>TRUE</code></td>
+              <td>Include Champ Series events</td>
+            </tr>
+            <tr>
+              <td><code>include_wll</code></td>
+              <td><span class="type-badge">logical</span></td>
+              <td><code>TRUE</code></td>
+              <td>Include WLL events</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="returns-block">
+          <div class="returns-label">Returns</div>
+          <div class="returns-text">
+            A tibble with one row per game (~80 rows, 64 columns). Top-level columns: <code>id</code>, <code>event_id</code>, <code>league</code>, <code>season_segment</code>, <code>start_time</code>, <code>week</code>, <code>year</code>, <code>game_number</code>, <code>venue</code>, <code>venue_location</code>, <code>broadcaster</code>, <code>event_status</code>, <code>game_status</code>, <code>home_score</code>, <code>visitor_score</code>. Home team columns are prefixed with <code>home_</code> and away team columns with <code>away_</code> (e.g., <code>home_full_name</code>, <code>away_full_name</code>, <code>home_url_logo</code>).
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- pll_draft_order -->
+    <div class="fn-card">
+      <div class="fn-header">
+        <div class="fn-sig">
+          <span class="fn-name">pll_draft_order</span><span class="fn-paren">(</span><span class="fn-param-name">year</span> <span class="fn-paren">=</span> <span class="fn-param-val">2025</span><span class="fn-comma">,</span> <span class="fn-param-name">league</span> <span class="fn-paren">=</span> <span class="fn-param-val">"PLL"</span><span class="fn-paren">)</span>
+        </div>
+      </div>
+      <div class="fn-body">
+        <p class="fn-desc">Returns the draft pick order for the specified year and league.</p>
+        <table class="param-table">
+          <thead>
+            <tr>
+              <th>Parameter</th>
+              <th>Type</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>year</code></td>
+              <td><span class="type-badge">integer</span></td>
+              <td><code>2025</code></td>
+              <td>Draft year</td>
+            </tr>
+            <tr>
+              <td><code>league</code></td>
+              <td><span class="type-badge">character</span></td>
+              <td><code>"PLL"</code></td>
+              <td>League identifier</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="returns-block">
+          <div class="returns-label">Returns</div>
+          <div class="returns-text">
+            A tibble with one row per draft slot (~60 rows, 11 columns): <code>id</code>, <code>year</code>, <code>round</code>, <code>round_pick</code>, <code>overall_pick</code>, <code>team_id</code>, <code>league</code>. Pick-specific columns are prefixed with <code>pick_</code>: <code>pick_player_name</code>, <code>pick_college</code>, <code>pick_position</code>, <code>pick_player_id</code>. Pick columns are <code>NA</code> for unfilled slots.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- pll_draft_predictions -->
+    <div class="fn-card">
+      <div class="fn-header">
+        <div class="fn-sig">
+          <span class="fn-name">pll_draft_predictions</span><span class="fn-paren">(</span><span class="fn-param-name">year</span> <span class="fn-paren">=</span> <span class="fn-param-val">2026</span><span class="fn-paren">)</span>
+        </div>
+      </div>
+      <div class="fn-body">
+        <p class="fn-desc">Returns analyst mock draft rankings for the specified year. These are predictions, not official picks.</p>
+        <table class="param-table">
+          <thead>
+            <tr>
+              <th>Parameter</th>
+              <th>Type</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>year</code></td>
+              <td><span class="type-badge">integer</span></td>
+              <td><code>2026</code></td>
+              <td>Draft year to retrieve predictions for</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="returns-block">
+          <div class="returns-label">Returns</div>
+          <div class="returns-text">
+            A tibble with one row per predicted pick (~30 rows, 13 columns): <code>id</code>, <code>year</code>, <code>analyst_name</code>, <code>player_name</code>, <code>image_url</code>, <code>position</code>, <code>college</code>, <code>college_logo</code>, <code>overall_rank</code>, <code>position_rank</code>, <code>change</code>, <code>analysis</code>, <code>league</code>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- pll_free_agents -->
+    <div class="fn-card">
+      <div class="fn-header">
+        <div class="fn-sig">
+          <span class="fn-name">pll_free_agents</span><span class="fn-paren">(</span><span class="fn-param-name">year</span> <span class="fn-paren">=</span> <span class="fn-param-val">2026</span><span class="fn-paren">)</span>
+        </div>
+      </div>
+      <div class="fn-body">
+        <p class="fn-desc">Returns free agent data for the specified year. Uses the GraphQL API endpoint internally.</p>
+        <table class="param-table">
+          <thead>
+            <tr>
+              <th>Parameter</th>
+              <th>Type</th>
+              <th>Default</th>
+              <th>Description</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>year</code></td>
+              <td><span class="type-badge">integer</span></td>
+              <td><code>2026</code></td>
+              <td>Year to query</td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="returns-block">
+          <div class="returns-label">Returns</div>
+          <div class="returns-text">
+            A tibble with one row per free agent (~50 rows, 14 columns): <code>name</code>, <code>first_name</code>, <code>last_name</code>, <code>slug</code>, <code>profile_url</code>, <code>age</code>, <code>experience</code>, <code>position</code>, <code>status</code>, <code>official_id</code>, <code>new_contract_status</code>, <code>new_team_id</code>, <code>prev_team_id</code>, <code>thirty_percent_threshold_met</code>.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- NOTES -->
+  <section id="notes">
+    <div class="section-divider">
+      <span class="section-num">04</span>
+      <h2>Notes</h2>
+    </div>
+    <p class="section-lead">Conventions and known behavior to keep in mind.</p>
+
+    <div class="notes-grid">
+      <div class="note-card full">
+        <div class="note-title">snake_case Column Naming</div>
+        <div class="note-body">
+          All returned tibble columns use <code>snake_case</code>. The underlying PLL API returns camelCase field names — pllr converts every column name automatically so you never have to deal with <code>teamId</code> or <code>fullName</code>.
+        </div>
+        <div class="convention-block" style="margin-top:1rem;">
+          <div class="convention-row">
+            <span class="conv-api">teamId</span>
+            <span class="conv-arr">→</span>
+            <span class="conv-pkg">team_id</span>
+          </div>
+          <div class="convention-row">
+            <span class="conv-api">fullName</span>
+            <span class="conv-arr">→</span>
+            <span class="conv-pkg">full_name</span>
+          </div>
+          <div class="convention-row">
+            <span class="conv-api">locationCode</span>
+            <span class="conv-arr">→</span>
+            <span class="conv-pkg">location_code</span>
+          </div>
+          <div class="convention-row">
+            <span class="conv-api">scoresAgainst</span>
+            <span class="conv-arr">→</span>
+            <span class="conv-pkg">scores_against</span>
+          </div>
+          <div class="convention-row">
+            <span class="conv-api">faceoffPct</span>
+            <span class="conv-arr">→</span>
+            <span class="conv-pkg">faceoff_pct</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="note-card">
+        <div class="note-title">Data Availability</div>
+        <div class="note-body">
+          Season data (standings, player stats, events) is only available during or after the season has been played. Querying a future or in-progress season may return partial or empty results.
+        </div>
+      </div>
+
+      <div class="note-card">
+        <div class="note-title">Draft Predictions vs. Official Picks</div>
+        <div class="note-body">
+          <code>pll_draft_predictions()</code> returns analyst mock draft rankings, not official picks. Use <code>pll_draft_order()</code> for the official selection results.
+        </div>
+      </div>
+
+      <div class="note-card">
+        <div class="note-title">Free Agents — GraphQL</div>
+        <div class="note-body">
+          <code>pll_free_agents()</code> uses the GraphQL API endpoint internally. All other functions use the REST API.
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div><!-- /page -->
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <p>
+      <strong style="color:var(--text);">pllr</strong> &mdash; MIT License
+    </p>
+    <p>
+      Source on <a href="https://github.com/WalrusQuant/pllr" target="_blank" rel="noopener">GitHub &rarr; WalrusQuant/pllr</a>
+    </p>
+    <p style="margin-top:0.75rem;font-size:0.8rem;color:var(--text-dim);">
+      Not affiliated with the Premier Lacrosse League.
+    </p>
+  </div>
+</footer>
+
+</body>
+</html>
