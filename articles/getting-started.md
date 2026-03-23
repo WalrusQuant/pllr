@@ -1,0 +1,144 @@
+# Getting Started with pllr
+
+## Installation
+
+Install from GitHub using devtools:
+
+``` r
+# install.packages("devtools")
+devtools::install_github("WalrusQuant/pllr")
+```
+
+Then load the package:
+
+``` r
+library(pllr)
+```
+
+## Overview
+
+`pllr` wraps the Premier Lacrosse League (PLL) stats API and returns
+results as tibbles with `snake_case` column names. The package provides
+six functions covering standings, player statistics, game events, the
+draft, and free agency.
+
+All column names are automatically converted from the API’s `camelCase`
+to `snake_case`.
+
+## Functions
+
+### `pll_standings()` — Team Standings
+
+Returns team standings for a given season. Set `champ_series = TRUE` for
+Champ Series standings or `FALSE` for regular season.
+
+``` r
+standings <- pll_standings(year = 2025, champ_series = TRUE)
+# # A tibble: 14 × 19
+# # team_id  full_name  location  wins  losses  ties  scores  scores_against ...
+```
+
+Key columns: `team_id`, `full_name`, `location`, `seed`, `wins`,
+`losses`, `ties`, `scores`, `scores_against`, `score_diff`,
+`conference`, `conference_seed`.
+
+### `pll_events()` — Game Schedule & Results
+
+Returns the game schedule and results for a season. Optionally include
+Champ Series and WLL events.
+
+``` r
+events <- pll_events(year = 2025, include_cs = TRUE, include_wll = TRUE)
+# # A tibble: ~80 × 64
+# # id  event_id  league  start_time  venue  broadcaster  home_full_name  away_full_name ...
+```
+
+Home team columns are prefixed with `home_` and away team columns with
+`away_` (e.g., `home_full_name`, `away_score`, `away_url_logo`).
+
+### `pll_player_stats()` — Player Statistics
+
+Returns per-player season statistics. Use `season_segment` to choose
+between `"champseries"` and `"regular"`.
+
+``` r
+stats <- pll_player_stats(year = 2025, season_segment = "champseries")
+# # A tibble: ~200 × 70
+# # official_id  first_name  last_name  position  goals  assists  points ...
+```
+
+Player identity columns include `official_id`, `first_name`,
+`last_name`, `slug`, `jersey_num`, `position`, `experience`. Team
+columns are prefixed with `team_` (e.g., `team_full_name`,
+`team_location_code`). Stat columns include `goals`, `assists`,
+`points`, `shots`, `shot_pct`, `saves`, `save_pct`, `faceoffs_won`,
+`faceoff_pct`, `ground_balls`, `turnovers`, `caused_turnovers`, `gaa`,
+`plus_minus`, and many more.
+
+### `pll_free_agents()` — Free Agent Data
+
+Returns free agent data for a given year.
+
+``` r
+free_agents <- pll_free_agents(year = 2026)
+# # A tibble: ~50 × 14
+# # name  position  age  prev_team_id  new_team_id  new_contract_status ...
+```
+
+Columns include `name`, `first_name`, `last_name`, `slug`, `age`,
+`experience`, `position`, `status`, `official_id`,
+`new_contract_status`, `new_team_id`, `prev_team_id`,
+`thirty_percent_threshold_met`.
+
+Note:
+[`pll_free_agents()`](https://walrusquant.github.io/pllr/reference/pll_free_agents.md)
+uses the GraphQL API endpoint; all other functions use the REST API.
+
+### `pll_draft_order()` — Draft Pick Order
+
+Returns the official draft pick order for a given year and league.
+
+``` r
+draft <- pll_draft_order(year = 2025, league = "PLL")
+# # A tibble: ~60 × 11
+# # id  year  round  round_pick  overall_pick  team_id  pick_player_name ...
+```
+
+Pick-specific columns are prefixed with `pick_`: `pick_player_name`,
+`pick_college`, `pick_position`, `pick_player_id`. Pick columns are `NA`
+for unfilled slots.
+
+### `pll_draft_predictions()` — Mock Draft Rankings
+
+Returns analyst mock draft rankings (not official picks) for a given
+year.
+
+``` r
+predictions <- pll_draft_predictions(year = 2026)
+# # A tibble: ~30 × 13
+# # id  year  analyst_name  player_name  position  college  overall_rank  analysis ...
+```
+
+Columns include `id`, `year`, `analyst_name`, `player_name`,
+`image_url`, `position`, `college`, `college_logo`, `overall_rank`,
+`position_rank`, `change`, `analysis`, `league`.
+
+Use
+[`pll_draft_order()`](https://walrusquant.github.io/pllr/reference/pll_draft_order.md)
+for official selections after the draft has occurred.
+
+## Notes
+
+**Column naming:** All returned tibble columns use `snake_case`. The
+underlying API uses camelCase; the package converts all names
+automatically.
+
+**Data availability:** Season data (standings, player stats, events) is
+only available during or after the season has been played. Querying a
+future or in-progress season may return partial or empty results.
+
+**Draft predictions vs. draft order:**
+[`pll_draft_predictions()`](https://walrusquant.github.io/pllr/reference/pll_draft_predictions.md)
+returns analyst mock draft rankings. Use
+[`pll_draft_order()`](https://walrusquant.github.io/pllr/reference/pll_draft_order.md)
+for official draft selections.
